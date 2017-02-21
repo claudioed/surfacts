@@ -1,0 +1,5 @@
+rootProject.name = 'surfacts'
+include 'championship'
+include 'user'
+include 'prediction'
+
