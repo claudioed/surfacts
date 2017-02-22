@@ -1,5 +1,8 @@
 package domain
 
+import domain.exception.MatchNotInChampionship
+import domain.exception.UserNotInGroup
+import infra.Specification
 import java.time.LocalDateTime
 
 /**
@@ -24,20 +27,26 @@ data class Championship(val id: String, val matches: List<Match>) {
 
 data class Group(val name: String, val championship: Championship, val owner: User) {
 
-    val users: MutableList<User> = mutableListOf()
+    val users: MutableSet<User> = mutableSetOf()
 
-    val predictions: MutableList<RegisteredPrediction> = mutableListOf()
+    val predictions: MutableSet<RegisteredPrediction> = mutableSetOf()
 
-    fun addPrediction(candidatePrediction: Prediction): Unit {
-        if(ContainsUser(this).isSatisfied(candidatePrediction)){
-            if (ContainsMatch(this.championship).isSatisfied(candidatePrediction)){
-                this.predictions.add(RegisteredPrediction(candidatePrediction.matchId,candidatePrediction.userId,candidatePrediction.home,candidatePrediction.away, LocalDateTime.now()))
-            }else{
+    val validUsersSpec: Specification<Prediction> = ContainsUser(this)
 
+    val validMatchSpec: Specification<Prediction> = ContainsMatch(this.championship)
+
+    fun receivePrediction(candidatePrediction: Prediction): Unit {
+        if (validUsersSpec isSatisfied candidatePrediction) {
+            if (validMatchSpec isSatisfied candidatePrediction) {
+                this.predictions.add(RegisteredPrediction(candidatePrediction.matchId, candidatePrediction.userId, candidatePrediction.home, candidatePrediction.away, LocalDateTime.now()))
+            } else {
+                throw MatchNotInChampionship(candidatePrediction.matchId)
             }
-        }else{
-
+        } else {
+            throw UserNotInGroup(candidatePrediction.userId, candidatePrediction.matchId)
         }
     }
+
+    fun newUser(user:User): Boolean = users.add(user)
 
 }
